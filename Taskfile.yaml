@@ -1,0 +1,12 @@
+version: 3
+
+tasks:
+  default:
+    cmds:
+      - task --list
+    silent: true
+  run:
+    desc: "Start app with local env"
+    cmds:
+      - go run cmd/api/main.go --config configs/local.yaml
+    silent: true

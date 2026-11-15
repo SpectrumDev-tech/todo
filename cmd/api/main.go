@@ -16,15 +16,16 @@ func helloHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	if err := run(); err != nil {
-		panic(err)
-	}
-}
-
-func run() error {
 	cfg := config.MustLoadConfig()
 	log := logger.SetupLogger(slog.LevelDebug, os.Stdout)
 
+	if err := run(cfg, log); err != nil {
+		log.Error("applications stopped with error", slog.Any("error", err))
+		os.Exit(1)
+	}
+}
+
+func run(cfg *config.Config, log *slog.Logger) error {
 	db, err := storage.Open(cfg.Database, log)
 	if err != nil {
 		return fmt.Errorf("init storage: %w", err)

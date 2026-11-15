@@ -10,3 +10,28 @@ tasks:
     cmds:
       - go run cmd/api/main.go --config configs/local.yaml
     silent: true
+
+  test:
+    desc: "Run all tests without -v"
+    cmds:
+      - go test ./...
+    silent: true
+
+  test:race:
+    desc: "Run all tests with -race"
+    cmds:
+      - go test -v -race ./...
+    silent: true
+
+  test:cover:
+    desc: "See percentage of coverage"
+    cmds:
+      - go test -coverprofile=coverage.out ./...
+      - go tool cover -func=coverage.out
+    silent: false
+
+  clean:
+    desc: "Clear report files"
+    cmds:
+      - rm -f coverage.out
+    silent: false

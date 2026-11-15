@@ -2,6 +2,7 @@ package config
 
 import (
 	"net"
+	"os"
 	"strconv"
 
 	"github.com/ilyakaznacheev/cleanenv"
@@ -29,7 +30,7 @@ type DatabaseCfg struct {
 func MustLoadConfig() *Config {
 	var cfg Config
 
-	path, err := getPathFromArgument()
+	path, err := getPathFromArgument(os.Args[1:])
 	if err != nil {
 		panic(err)
 	}

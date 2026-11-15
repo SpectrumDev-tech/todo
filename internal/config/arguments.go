@@ -27,7 +27,7 @@ func getPathFromArgument(args []string) (string, error) {
 	// При возврате из валидатора ошибки - возвращаем ошибку, config будет паниковать сам
 	if path != "" {
 		if err := validatePathConfig(path); err != nil {
-			return "", fmt.Errorf("%w: %s", ErrValidatePath, err)
+			return "", fmt.Errorf("%w: %v", ErrValidatePath, err)
 		}
 		return path, nil
 	}

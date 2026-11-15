@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/SpectrumDev-tech/todo/internal/config"
 	"github.com/SpectrumDev-tech/todo/internal/logger"
@@ -26,7 +31,10 @@ func main() {
 }
 
 func run(cfg *config.Config, log *slog.Logger) error {
-	db, err := storage.Open(cfg.Database, log)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	db, err := storage.Open(ctx, cfg.Database, log)
 	if err != nil {
 		return fmt.Errorf("init storage: %w", err)
 	}
@@ -36,14 +44,38 @@ func run(cfg *config.Config, log *slog.Logger) error {
 		}
 	}()
 
-	log.Info("starting server",
-		slog.String("addr", cfg.Server.Addr()),
-	)
-
-	http.HandleFunc("/status", helloHandler)
-
-	if err := http.ListenAndServe(cfg.Server.Addr(), nil); err != nil {
-		return err
+	router := http.NewServeMux()
+	router.HandleFunc("/status", helloHandler)
+	srv := &http.Server{
+		Addr:    cfg.Server.Addr(),
+		Handler: router,
 	}
+
+	serverError := make(chan error, 1)
+
+	go func() {
+		log.Info("starting server",
+			slog.String("addr", cfg.Server.Addr()),
+		)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverError <- err
+			log.Error("HTTP server error", slog.Any("error", err))
+		}
+	}()
+
+	select {
+	case err := <-serverError:
+		return fmt.Errorf("server failed: %w", err)
+	case <-ctx.Done():
+		log.Info("shutdown signal")
+	}
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("graceful shutdown: %w", err)
+	}
+	log.Info("server shutdown complete")
 	return nil
 }

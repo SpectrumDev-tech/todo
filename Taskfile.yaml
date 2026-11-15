@@ -30,6 +30,12 @@ tasks:
       - go tool cover -func=coverage.out
     silent: false
 
+  db:clean:
+    desc: "Delete sqlite db"
+    cmds:
+      - rm -rf ./data/
+    silent: false
+
   clean:
     desc: "Clear report files"
     cmds:
